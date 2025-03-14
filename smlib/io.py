@@ -114,6 +114,9 @@ class epicsIO():
         '''Return True if the PV is connected.'''
         return self._conn
 
+    def get_ctrlvars(self) -> bool:
+        '''Return PV control variables.'''
+        return self._pv.get_ctrlvars()
 
 class fsmIOs():
     '''Class representing a list of epicsIO objects.'''
@@ -527,6 +530,10 @@ class fsmIO():
 
     def enumStrings(self) -> list:
         '''Possible string values of enum PV'''
+        if self._data.get('enum_strs', None) is None:
+            ctrlvars = self._reflectedIO.get_ctrlvars()
+            if ctrlvars and 'enum_strs' in ctrlvars:
+               self._data['enum_strs'] = ctrlvars['enum_strs']
         return self._data.get('enum_strs', None)
     
     def displayLimits(self) -> tuple:
