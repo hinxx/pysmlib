@@ -59,10 +59,10 @@ class fsmBase(threading.Thread):
         self._awakerReason = ""
         self._watchdog = None
 
-    # populate the sensityvity list for each state
+    # populate the sensitivity list for each state
     def setSensLists(self, statesWithIos: dict) -> None:
-        # statesWithIos e un dizionario in cui la chiave e il nome dello stato e
-        # il valore un array di ingressi utilizzati dallo stato
+        # statesWithIos is a dictionary in which the key is the name of the state
+        # and the value an array of epicsIO inputs used by the state
         for state, iolist in statesWithIos.items():
             iodict = {}
             for io in iolist:
@@ -91,11 +91,11 @@ class fsmBase(threading.Thread):
             return
         self._nextstatename = state
         self._nextstateargs = (args, kwargs)
-        # metodo eval del prossimo stato
+        # next state's eval method
         self._nextstate = getattr(self, '%s_eval' % state)
-        # metodo entry del prossimo stato
+        # next state's entry method
         self._nextentry = getattr(self, '%s_entry' % state, None)
-        # metodo exit del prossimo stato
+        # next state's exit method
         self._nextexit = getattr(self, '%s_exit' % state, None)
 
     def gotoPrevState(self, *args, **kwargs) -> None:
@@ -162,11 +162,11 @@ class fsmBase(threading.Thread):
     def eval_forever(self) -> None:
         '''Main loop of the FSM'''
         while not self._stop_thread:
-            changed = self.eval()  # eval viene eseguito senza lock
-            self.lock()  # blocca la coda degli eventi
+            changed = self.eval()  # eval runs without lock
+            self.lock()  # block on the queue for events
             if not changed and len(self._events) == 0:
                 self.logD("No events to process going to sleep\n")
-                self._cond.wait()  # la macchina va in sleep in attesa di un evento (da un IO, timer...)
+                self._cond.wait()  # go to sleep waiting for an event (from an IO, timer ...)
                 self.logD('awoken')
             self._process_one_event()  # PROCESS ONLY IF RETURN TRUE?
             self.unlock()
