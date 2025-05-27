@@ -24,14 +24,25 @@ if TYPE_CHECKING:
 class epicsIO():
     '''Class representing an IO with Epics support for a finite state machine.'''
 
-    def __init__(self, name:str) -> None:
+    def __init__(self, name:str, **args) -> None:
         self._name = name
         self._data = {}  # keep all infos arriving with change callback
         self._conn = False  # keeps all infos arriving with connection callback
 
         self._attached = set()  # set of finite state machines using this IO
         self._cond = threading.Condition()
-        self._pv = epics.PV(name, callback=self.chgcb, connection_callback=self.concb, auto_monitor=True)
+        # get the enum strings and current char_value if this is an enum PV
+        # this handling is required because initial char_value that the monitor
+        # gets is *NOT* one of the enum strings, but a numeric value as string
+        if args.get('is_enum', False):
+            # make sure we do not get callback update until the enum strings are set
+            self._pv = epics.PV(name, connection_callback=self.concb, auto_monitor=False)
+            self._pv.get_ctrlvars()
+            # set and fire the callback
+            self._pv.add_callback(self.chgcb)
+            self._pv.auto_monitor = True
+        else:
+            self._pv = epics.PV(name, callback=self.chgcb, connection_callback=self.concb, auto_monitor=True)
 
     def ioname(self) -> str:
         '''Return the name of the PV.'''
@@ -114,10 +125,6 @@ class epicsIO():
         '''Return True if the PV is connected.'''
         return self._conn
 
-    def get_ctrlvars(self) -> bool:
-        '''Return PV control variables.'''
-        return self._pv.get_ctrlvars()
-
 class fsmIOs():
     '''Class representing a list of epicsIO objects.'''
 
@@ -129,7 +136,7 @@ class fsmIOs():
         
         # first time this input was requested: we create and attach it
         if name not in self._ios:
-            self._ios[name] = epicsIO(name)
+            self._ios[name] = epicsIO(name, **args)
 
         # input already created: if not already attached to the fsm, trigger some 
         # fake events to init fsm
@@ -530,10 +537,7 @@ class fsmIO():
 
     def enumStrings(self) -> list:
         '''Possible string values of enum PV'''
-        if self._data.get('enum_strs', None) is None:
-            ctrlvars = self._reflectedIO.get_ctrlvars()
-            if ctrlvars and 'enum_strs' in ctrlvars:
-               self._data['enum_strs'] = ctrlvars['enum_strs']
+        # print("XXX %s enum_strs: %s" % (self._name, self._data.get('enum_strs', None)))
         return self._data.get('enum_strs', None)
     
     def displayLimits(self) -> tuple:
