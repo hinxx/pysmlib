@@ -63,22 +63,23 @@ class loader(object):
         for fsm in self._fsmsList:
             if fsm.is_alive():
                 fsm.kill()
+                print("Killed fsm", fsm)
         print("Killed all the fsms")
         if self._timerManager.is_alive():  # if no fsm is loaded it won't be alive
             self._timerManager.kill()
+            print("Killed the timer manager", self._timerManager)
         print("Killed the timer manager")
 
     def printUnconnectedIOs(self, signum, frame): # pylint: disable=unused-argument
         '''Print all the unconnected IOs.'''
         ios = self._ioManager.getAll()
         s = 0
-        print("DISCONNECTED INPUTS:")
+        print("DISCONNECTED INPUTS (ios %s):" % self._ioManager)
         for i in ios:
             if not i.connected():
                 print(i.ioname())
                 s += 1
         print("Total disconnected inputs: %d out of %d!" % (s, len(ios)))
-        signal.pause()
 
     def start(self, blocking=True):
         '''Start all the loaded fsms.'''
