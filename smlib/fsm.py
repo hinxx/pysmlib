@@ -134,6 +134,8 @@ class fsmBase(threading.Thread):
     def eval(self) -> bool:
         '''Execute the current state'''
         changed = False
+        if self._nextstate is None and self._curstate is None:
+            return False
         if self._nextstate != self._curstate:
             self.logD('%s => %s' % (self._curstatename, self._nextstatename))
             self._prevstatename = self._curstatename
